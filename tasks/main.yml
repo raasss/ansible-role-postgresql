@@ -1,0 +1,32 @@
+---
+- name: Install packages
+  apt:
+    name:
+      - python3-psycopg2
+      - postgresql-12
+    install_recommends: no
+    state: present
+
+- name: Enable and start service
+  service:
+    name: postgresql
+    state: started
+    enabled: yes
+
+- name: Create databases
+  become: true
+  become_user: postgres
+  community.postgresql.postgresql_db:
+    name: "{{ item }}"
+  loop: "{{ postgresql_databases }}"
+
+- name: Create users
+  become: yes
+  become_user: postgres
+  postgresql_user:
+    db: "{{ item.value.db }}"
+    name: "{{ item.key }}"
+    password: "{{ item.value.password}}"
+    priv: "{{ item.value.priv }}"
+    state: "{{ item.value.state | default('present') }}"
+  loop: "{{ postgresql_users | dict2items }}"
